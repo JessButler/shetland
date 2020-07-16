@@ -61,7 +61,7 @@ shetland_sf <-
 ```
 
 
-Areas by Scottish Deprivation Index
+Areas by Scottish Index of Multiple Deprivation
 =====================================
 
 Row
@@ -98,7 +98,7 @@ shetland %>%
   gt() %>%
   tab_header(
     title = "Shetland areas by most vulnerable", 
-    subtitle = "Datazones by Scottish Index of Multiple Deprivation decile (lower = more deprived") %>%
+    subtitle = "Data zones by Scottish Index of Multiple Deprivation decile (lower = more deprived)") %>%
   cols_label(
     Data_Zone = "Data Zone",
     DZname = "Name", 
