@@ -1,0 +1,168 @@
+---
+title: "Vulnerability in Shetland"
+
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(sf)
+library(flexdashboard)
+library(mapview)
+library(gt)
+library(DT)
+```
+
+
+```{r}
+#load data and shapefiles 
+
+simd_zones <- read_csv(here("data", "SIMD+2020v2+-+datazone+lookup.csv"))
+
+simd_indicators <- read_csv(here("data", "SIMD2020v2_indicators.csv"))
+
+datazone_sf <- st_read(here("data", "sc_dz_11.shp"), quiet = T)
+```
+
+```{r}
+#join SIMD files
+#remove "%" and "*" and make numeric
+
+simd <- left_join(simd_indicators, simd_zones, by = c("Data_Zone" = "DZ"))
+
+simd <- 
+simd %>%
+  mutate(across(everything(), ~ str_remove_all(., "%")),
+         across(everything(), ~ str_remove_all(., "\\*")),
+         across(Total_population:nocentralheat_rate, ~ as.numeric(.)),
+         across(SIMD2020v2_Rank:Population, ~ as.numeric(.)))
+```
+
+
+```{r}
+#select Shetland's data 
+#join to shapefile
+
+shetland <-
+  simd %>%
+  filter(HBname == "Shetland")
+
+shetland_data_zones <- pull(shetland, Data_Zone)
+
+shetland_sf <- filter(datazone_sf, DataZone %in% shetland_data_zones)
+
+shetland_sf <-
+  left_join(shetland_sf, shetland, by = c("DataZone" = "Data_Zone"))
+
+```
+
+
+Areas by Scottish Deprivation Index
+=====================================
+
+Row
+-------------------------------------
+
+###
+
+```{r}
+pal = viridisLite::viridis(n = 7, direction = -1)
+
+shetland_sf %>%
+  select(DataZone, Name, Total_population, SIMD2020v2_Decile) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "SIMD2020v2_Decile", 
+    label = shetland_sf$Name,
+    layer.name = "SIMD decile",
+    alpha.regions = 0.8,
+    col.regions = pal
+    ) 
+```
+
+
+###
+
+```{r}
+# table by deprivation index decile
+
+shetland %>%
+  select(Data_Zone, DZname, Total_population, SIMD2020v2_Decile) %>%
+   arrange(SIMD2020v2_Decile, DZname) %>%
+  gt() %>%
+  tab_header(
+    title = "Shetland areas by most vulnerable", 
+    subtitle = "Datazones by Scottish Index of Multiple Deprivation decile (lower = more deprived") %>%
+  cols_label(
+    Data_Zone = "Data Zone",
+    DZname = "Name", 
+    Total_population = "Population",
+    SIMD2020v2_Decile = "SIMD Decile")  %>%
+  tab_options(container.height = 400)
+```
+
+
+Data
+=====================================
+
+Row
+-------------------------------------
+
+###
+```{r}
+#scores table
+
+shetland %>%
+  mutate(working_age_rate = round(Working_age_population/Total_population * 100, 0)) %>%
+  select(Data_Zone, DZname, SIMD2020v2_Decile, Total_population, working_age_rate, Income_rate, Employment_rate, CIF, SMR, EMERG, Attendance, Attainment, crime_rate, overcrowded_rate, nocentralheat_rate, Broadband, PT_GP, PT_retail) %>%
+  rename("Data Zone" = Data_Zone,
+    "Name" = DZname,
+    "SIMD Decile" = SIMD2020v2_Decile,
+    "Population" = Total_population,
+    "Working Age Rate" = working_age_rate,
+    "Income Support Rate" = Income_rate,
+    "Employment Support Rate" = Employment_rate,
+    "Compartive Illness Factor" = CIF,
+    "Standardised Mortality Ratio" = SMR,
+    "Emergency Stays in Hospital" = EMERG,
+    ">90% School Attendance" = Attendance,
+    "School Leavers' Attainment" = Attainment,
+    "Arrest Rate" = crime_rate,
+    "Living Overcrowded Rate" = overcrowded_rate,
+    "No Central Heat Rate" = nocentralheat_rate,
+    "No Fast Broadband Rate" = Broadband,
+    "Transit Time to GP" = PT_GP,
+    "Tranist Time to Retail" = PT_retail) %>%
+  arrange(Name) %>%
+  datatable()
+```
+
+Sources
+=====================================
+
+Row
+-------------------------------------
+###
+
+Scottish Index of Multiple Deprivation 2020
+https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/
+
+Scottish Index of Multiple Deprivation 2020 technical notes
+https://www2.gov.scot/resource/0050/00504822.pdf
+
+Data from 
+https://www.gov.scot/publications/scottish-index-of-multiple-deprivation-2020v2-indicator-data/ 
+
+https://www.gov.scot/publications/scottish-index-of-multiple-deprivation-2020v2-data-zone-look-up/
+
+Map shapefiles from https://data.gov.uk/dataset/ab9f1f20-3b7f-4efa-9bd2-239acf63b540/data-zone-boundaries-2011
+
+Code at https://github.com/JessButler/shetland
+
+Contact <JessicaButler@abdn.ac.uk>
+
+
