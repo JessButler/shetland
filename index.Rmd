@@ -70,6 +70,8 @@ Row
 ###
 
 ```{r}
+#reverse coloring and make map
+
 pal = viridisLite::viridis(n = 7, direction = -1)
 
 shetland_sf %>%
@@ -114,7 +116,7 @@ Row
 
 ###
 ```{r}
-#scores table
+#full table for all datazones
 
 shetland %>%
   mutate(working_age_rate = round(Working_age_population/Total_population * 100, 0)) %>%
